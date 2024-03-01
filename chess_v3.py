@@ -4,12 +4,44 @@ Created on Sat Feb 17 09:25:24 2024
 
 @author: neeb-meister
 """
-# chess_v2.py
 
-import piece_classes as p
+from pieces import Pieces as p
 import json
 from datetime import datetime
+import logging
+import os
 
+def open_txt_file():
+    # Get a list of all the .txt files in the current directory
+    txt_files = [file for file in os.listdir() if file.endswith('.txt')]
+    
+    if not txt_files:
+        print("No .txt files found in the current directory.")
+        return
+    
+    # Print the list of .txt files
+    print("Select a .txt file to open:")
+    for i, file in enumerate(txt_files, start=1):
+        print(f"{i}. {file}")
+    
+    # Prompt the user to select a file
+    while True:
+        try:
+            choice = int(input("Enter the number of the file you want to open: "))
+            if 1 <= choice <= len(txt_files):
+                break
+            else:
+                print("Invalid choice. Please enter a number from the list.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+    
+    # Open the selected file
+    selected_file = txt_files[choice - 1]
+    with open(selected_file, 'r') as file:
+        data = json.load(file)
+        return data
+        
+         
 class chessBoard:
     def __init__(self,board=[]):
         if board == []:
@@ -129,7 +161,6 @@ class chessBoard:
             if len(i) != 8:
                 print("Error: Unable to inialize board /nRow " + a + " is not length 8")
                 return None
-        board4piece = [row for row in self.mat]
         #Define which side white starts on (top or bottom)
         top = top
         if top == "white":
@@ -188,7 +219,7 @@ class chessBoard:
             for row in self.mat:
                 for space in row:
                     if type(space) != str:
-                        space.forward(top)    
+                        space.initialize(top)    
         except:
             print("Error: Unknown error initilizing board")
     
@@ -241,8 +272,9 @@ class chessBoard:
             for b, n in enumerate(i):
                 board_str_output.append(listElement2str(n))
             board_str_output.append(8+-1*a)
-            print(board_str_output)
-        print(['a','b','c','d','e','f','g','h',0])
+            printrow = ' '.join(str(char) for char in board_str_output)
+            print(printrow)
+        print('a b c d e f g h 0')
         return True
             
     # select : pos, bool -> active_piece
@@ -304,21 +336,23 @@ class chessBoard:
                 column = input("column: ")
                 row = int(input("row: "))
                 row,column = self.not2int(column,row)
-            print(f"you selected to move {active_piece.name} to {self.int2not([row,column])}")
+            if self.playing:
+                print(f"you selected to move {active_piece.name} to {self.int2not([row,column])}")
             if [row,column] in active_piece.validMoves():
                 log2 = active_piece.pos()
                 taken = active_piece.move(row,column,self.mat)
-                if type(taken) == str:
+                if type(taken) == str and self.playing:
                     print(active_piece.name,"moved to",[row,column])
-                else:
+                elif self.playing:
                     print(active_piece.name,"moved to",[row,column])
                     print("and took",taken.name)
                     print()
                 # log entry : player, piece, move
                 logentry = [self.active_player, self.int2not(log2),self.int2not([row,column])]
-                if self.templog != None:
-                    logentry = [self.active_player, self.templog, "z26"]
-                    self.templog = None
+                # legacy castling code
+                # if self.templog != None:
+                #     logentry = [self.active_player, self.templog, 'z26']
+                #     self.templog = None
                 self.log[self.tn] = logentry
                 self.log["last move"] = logentry
                 self.tryPromote(active_piece)
@@ -332,8 +366,9 @@ class chessBoard:
             else:
                 print("! invalid move !")
                 print()
-        self.printBoard()
-        print(self.active_player,"to move")
+        if self.playing:
+            self.printBoard()
+            print(self.active_player,"to move")
         return False
             
     # switchActivePlayer : color -> color
@@ -345,98 +380,145 @@ class chessBoard:
             self.active_player = "white"
         return True
     
+    # readLog : 
+    # prompts user to select game, reads game to a file
+    def readLog(self):
+        self.playing = False
+        data = open_txt_file()
+        del data["last move"]
+        n = 0
+        largest_key = max(int(key) for key in data.keys())
+        print(f"largest_key {largest_key}")
+        last_turn_num = largest_key
+        while n < int(last_turn_num):
+            m = str(n)
+            if data[m][2] == None or data[m][2] == 'z26':
+                self.handleInput(data[m][1])
+            else:
+                self.handleInput(data[m][1]+' '+data[m][2])
+            print()
+            print(f"Game state at turn {n+1}, {data[m][0]}'s move")
+            self.printBoard()
+            print()
+            print("'break' to continue game from this point")
+            print("'back' to go back 1 move")
+            print(" any input to continue")
+            cmd = input(' >   ')
+            cmd = cmd.lower()
+            if cmd == "break":
+                break
+            elif cmd == "back":
+                n += -1
+            else:
+                n += 1
+        if cmd == "break":
+            self.active_player = data[str(n+1)][0]
+            self.play()
+    
+    # gameHelp : 
+    # helper fucntion for handleInput, prints the help blurb
+    def gameHelp(self):
+        print("print    : prints board")
+        print("select   : prompts to select a piece")
+        print("move     : prompts to move the selected piece")
+        print("selected : returns name of selected piece")
+        print("moves    : returns valid moves of selected piece")
+        print("help     : shows this menu")
+        print("quit     : exits the game")
+        print("")
+        return None
+    
+    # handleInput : str 
+    # helper function for play(), given input it handles what to do
+    def handleInput(self,cmd):
+        # write the log file
+        with open(self.log_name,"w") as f:
+            json.dump(self.log,f)
+        
+        if cmd == "0 0" and self.active_player == "white":
+            cmd = "e1 g1"
+        elif cmd == "0 0" and self.active_player == "black":
+            cmd = "e8 g8"
+        elif cmd == "0 0 0" and self.active_player == "white":
+            cmd = "e1 c1"
+        elif cmd == "0 0 0" and self.active_player == "black":
+            cmd = "e8 c8"
+        
+        # check for fast move
+        fast = False
+        pos = []
+        if len(cmd.split()) == 2:
+            pos = cmd.split()[1]
+            cmd = cmd.split()[0]
+            if self.notq(pos) and self.notq(cmd):
+                fast = True
+        
+        # print -> prints board
+        if cmd.lower() == "print":
+            self.printBoard()
+            print(self.active_player,"to move")
+            return False
+        
+        # select -> selects a piece
+        elif cmd.lower() == "select":
+            self.active_piece = self.select(pos,fast)
+            return False
+            
+        # move -> moves a piece (returns error if illegal)
+        elif cmd.lower() == "move":
+            return self.move(self.active_piece,pos,fast)
+            
+        # selected -> returns name of selected piece
+        elif cmd.lower() == "selected":
+            print(self.active_piece.name)
+            return False
+        
+        # moves -> returns valid moves of selected piece
+        elif cmd.lower() == "moves":
+            tmpmoves = self.active_piece.validMoves()
+            for a,i in enumerate(tmpmoves):
+                tmpmoves[a] = self.int2not(i)
+            print(tmpmoves)
+            return False
+            
+        # if fast, run select and move together
+        elif fast:
+            return self.move(self.select(cmd,fast),pos,fast)
+        
+        # player
+        elif cmd.lower() == "player":
+            print(self.active_player)
+            return False
+        
+        # help -> returns list of commands
+        elif cmd.lower() == "help":
+            self.gameHelp()
+            return False
+        
+        # quit -> breaks the loop
+        elif cmd.lower() == "quit":
+            return True
+        
+        # else return unknown command
+        else:
+            print("\nUnknown command: "+'"'+cmd+'"')
+            print('type "help" to get a list of commands')
+            return False
+            
     # play : color, bool 
     # creates an interactive window in the console to play the game
     def play(self,playertwocolor="black",playertwocomp=False):
-        board = self.mat
-        def name(space):
-            if type(space) == str:
-                return space
-            else:
-                return space.name
-            
-        if playertwocolor == "black":
-            top_color = "black"
-        else:
-            top_color = "white"
-        
-        #gameplay loop
-        active_piece = ""
+        self.active_piece = ""
+        self.playing = True
         while True:
-            #Start by prompting the user
             cmd = input("your input:    ")
-            fast = False
-            pos = []
-            #one big try except for robustness
-            # try:
-                
-            #proccess the input
-            if len(cmd.split()) == 2:
-                pos = cmd.split()[1]
-                cmd = cmd.split()[0]
-                fast = True
-            
-            
-            # print -> prints board
-            if cmd.lower() == "print":
-                self.printBoard()
-                print(self.active_player,"to move")
-            
-            # select -> selects a piece
-            elif cmd.lower() == "select":
-                active_piece = self.select(pos,fast)
-                
-            # move -> moves a piece (returns error if illegal)
-            elif cmd.lower() == "move":
-                if self.move(active_piece,pos,fast):
+            try:
+                stop = self.handleInput(cmd)
+                if stop:
                     break
-                
-            # selected -> returns name of selected piece
-            elif cmd.lower() == "selected":
-                print(active_piece.name)
+            except Exception as e:
+                logging.exception("An error occured: %s",e)
             
-            # moves -> returns valid moves of selected piece
-            elif cmd.lower() == "moves":
-                tmpmoves = active_piece.validMoves()
-                for a,i in enumerate(tmpmoves):
-                    tmpmoves[a] = self.int2not(i)
-                print(tmpmoves)
-                
-            # if cmd is notq and fast = True, then player passed select and move
-            # together, run them together
-            elif self.notq(cmd) and fast:
-                if self.move(self.select(cmd,fast),pos,fast):
-                    break
-                
-            elif cmd.lower() == "player":
-                print(self.active_player)
-                
-            # help -> returns list of commands
-            elif cmd.lower() == "help":
-                print("print    : prints board")
-                print("select   : prompts to select a piece")
-                print("move     : prompts to move the selected piece")
-                print("selected : returns name of selected piece")
-                print("moves    : returns valid moves of selected piece")
-                print("help     : shows this menu")
-                print("quit     : exits the game")
-                print("")
-            
-            # quit -> breaks the loop
-            elif cmd.lower() == "quit":
-                break
-            
-            # else return unknown command
-            else:
-                print("\nUnknown command: "+'"'+cmd+'"')
-                print('type "help" to get a list of commands')
-                
-            # last step is to write the log file
-            with open(self.log_name,"w") as f:
-                json.dump(self.log,f)
-            
-            # except:
-            #     print("Error")
             
             
             
@@ -444,5 +526,5 @@ if __name__ == '__main__':
     bod = chessBoard()
     bod.placePieces()
     bod.printBoard()
-    bod.play()
+    bod.readLog()
             

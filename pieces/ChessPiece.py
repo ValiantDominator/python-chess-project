@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Feb 17 09:27:57 2024
+Created on Mon Feb 26 09:43:23 2024
 
 @author: neeb-meister
 """
-# piece_classes.py
 
-class chessPiece:
+class ChessPiece:
     def __init__(self,name,x,y,color,chessboard):
         self.name = name
         self.is_chess_piece = True
@@ -47,21 +46,26 @@ class chessPiece:
                     if space.name == piece:
                         return space
         print("Couldn't find piece:  " + piece + "  on board")
-        return " "
+        print("Calling piece:",self.name)
     
-    # forward : top 
+    # initialize : top 
     # input top color to set what direction forward is
     # used to determine which way pawns move
-    def forward(self,top):
+    # also give every piece a pointer to its own king
+    def initialize(self,top):
         if self.color != top:
             self.fwd = -1
         else:
             self.fwd = 1
+        self.my_king = self.getPiece(self.color+" king",self.board)
+        
             
     # get_rel_space : [int, int] -> space (piece or str)
     # given relative coordinates, return the pointer to the desired space
     # translate a relative move to the real move
-    def get_rel_space(self,coords):
+    def get_rel_space(self,coords,board = None):
+        if board == None:
+            board = self.board
         row_delta = coords[0]
         column_delta = coords[1]
         row_cur = self.y_pos
@@ -70,7 +74,7 @@ class chessPiece:
         column_new = column_cur+column_delta
         if not((row_new in range(8)) and (column_new in range(8))):
             return " "
-        return self.board[row_new][column_new]
+        return board[row_new][column_new]
     
     # get_rel_coords : [int, int] -> [row, column]
     # given a relative move, adds current pos to return position
@@ -180,7 +184,7 @@ class chessPiece:
     # takes itself and a game board, and returns a list of move options that 
     # does not include testing for check
     def primitivePossibilities(self,game_board,full_options=False):
-        relative_options = self.moveOptions(full_options)
+        relative_options = self.moveOptions(full_options,game_board)
         real_options = self.actualizeOptions(relative_options)
         real_options = self.shaveDownOutOfBounds(real_options)
         real_options = self.collisionCheck(real_options, game_board)
@@ -217,7 +221,7 @@ class chessPiece:
     # takes a look at a game_board and a player, and returns true if that player
     # is in check
     def inCheck(self,game_board,player,full_options=False):
-        my_king = self.getPiece(self.color+" king",game_board)
+        my_king = self.my_king
         return self.spaceTakeable(game_board,player,my_king.pos(),full_options)
     
     # validMoves : () -> list_of_valid_moves
@@ -227,10 +231,9 @@ class chessPiece:
     def validMoves(self):
         moves = self.primitivePossibilities(self.board,True)
         is_king = self.type == "king"
-        if is_king:
-            selfinitx = self.x_pos
-            selfinity = self.y_pos
-            selfmovestorage = self.has_not_moved_yet
+        selfinitx = self.x_pos
+        selfinity = self.y_pos
+        selfmovestorage = self.has_not_moved_yet
         for move in list(moves):
             temporary_board = [list(rows) for rows in self.board]
             self.move(move[0],move[1],temporary_board,is_king,False)
@@ -247,210 +250,8 @@ class chessPiece:
             #the case where there's nothing to take on diag and it's not enpassant
             elif var1 and var2 and var4: 
                 moves.remove(move)
-        if is_king:
-            self.has_not_moved_yet = selfmovestorage
-            self.y_pos = selfinity
-            self.x_pos = selfinitx
+    
+        self.has_not_moved_yet = selfmovestorage
+        self.y_pos = selfinity
+        self.x_pos = selfinitx
         return moves
-    
-class pawn(chessPiece):
-    def __init__(self, name, x=0, y=0, color="white",board=[]):
-        super().__init__(name, x, y, color,board)
-        self.type = "pawn"
-        self.collision = True
-        #for now I'll add all possible options to the pieces
-        #i'll make a generic function for collision rules on the 
-        #chess piece class. i'll add en passant later
-    def moveOptions(self,not_full_options=False):
-        mod = self.fwd
-        self.move_options = []
-        dir0 = []
-        dir1 = []
-        dir2 = []
-        dir3 = []
-        dir4 = []
-        if type(self.get_rel_space([1*mod,0])) == str:
-            dir0.append([1*mod,0])
-            if self.has_not_moved_yet:
-                if type(self.get_rel_space([2*mod,0])) == str:
-                    dir0.append([2*mod,0])
-        dir1.append([1*mod,1])
-        dir2.append([1*mod,-1]) 
-        self.move_options.append(dir0)
-        self.move_options.append(dir1)
-        self.move_options.append(dir2)
-        self.move_options.append(dir3)
-        self.move_options.append(dir4)
-        return self.move_options
-            #en passant stuff would go here       
-
-class rook(chessPiece):
-    def __init__(self, name, x=0, y=0, color="white",board=[]):
-        super().__init__(name, x, y, color,board)
-        self.type = "rook"
-        self.collision = True
-    def moveOptions(self,not_full_options=False):
-        self.move_options = []  
-        dir0 = []
-        dir1 = []
-        dir2 = []
-        dir3 = []
-        for i in range(1,8):
-            dir0.append([i,0])
-            dir1.append([-i,0])
-            dir2.append([0,i])
-            dir3.append([0,-i])
-        self.move_options.append(dir0)
-        self.move_options.append(dir1)
-        self.move_options.append(dir2)
-        self.move_options.append(dir3)
-        return self.move_options       
-    
-class knight(chessPiece):
-    def __init__(self, name, x=0, y=0, color="white",board=[]):
-        super().__init__(name, x, y, color,board)
-        self.type = "knight"
-        self.collision = False
-    def moveOptions(self,not_full_options=False):
-        self.move_options = []
-        self.move_options.append([[1,2]])
-        self.move_options.append([[1,-2]])
-        self.move_options.append([[-1,2]])
-        self.move_options.append([[-1,-2]])
-        self.move_options.append([[2,1]])
-        self.move_options.append([[2,-1]])
-        self.move_options.append([[-2,1]])
-        self.move_options.append([[-2,-1]])
-        return self.move_options     
-    
-class bishop(chessPiece):
-    def __init__(self, name, x=0, y=0, color="white",board=[]):
-        super().__init__(name, x, y, color,board)
-        self.type = "bishop"
-        self.collision = True
-    def moveOptions(self,fnot_full_options=False):
-        self.move_options = []     
-        dir0 = []
-        dir1 = []
-        dir2 = []
-        dir3 = []
-        for i in range(1,8):
-            dir0.append([i,i])
-            dir1.append([-i,i])
-            dir2.append([i,-i])
-            dir3.append([-i,-i])
-        self.move_options.append(dir0)
-        self.move_options.append(dir1)
-        self.move_options.append(dir2)
-        self.move_options.append(dir3) 
-        
-        return self.move_options      
-    
-class king(chessPiece):
-    def __init__(self, name, x=0, y=0, color="white",board=[]):
-        super().__init__(name, x, y, color,board)
-        self.type = "king"
-        self.collision = False
-    def moveOptions(self,full_options=True):
-        self.move_options = []
-        self.move_options.append([[1,1]])
-        self.move_options.append([[0,1]])
-        self.move_options.append([[1,0]])
-        self.move_options.append([[-1,-1]])
-        self.move_options.append([[-1,1]])
-        self.move_options.append([[1,-1]])
-        self.move_options.append([[-1,0]])
-        self.move_options.append([[0,-1]])
-        if self.has_not_moved_yet and full_options:
-            rook0 = self.getPiece(self.color+" rook 0", self.board)
-            rook1 = self.getPiece(self.color+" rook 1", self.board)
-            dir8 = []
-            dir9 = []
-            dir8.append(self.check_castle(rook0))
-            dir9.append(self.check_castle(rook1))
-            if type(dir8[0]) == list:
-                self.move_options.append(dir8)
-            if type(dir9[0]) == list:
-                self.move_options.append(dir9)
-        return self.move_options
-    
-    def check_castle(self,rook):
-        if rook == " ":
-            return False
-        if rook.has_not_moved_yet:
-            if self.color == "white":
-                enemy_player = "black"
-            else:
-                enemy_player ="white"
-            row = rook.y_pos
-            col_k = self.x_pos
-            col_r = rook.x_pos
-            small = min([col_r,col_k])
-            big = max([col_r,col_k])
-            if col_r == 0:
-                queen_side_castle = True
-            else:
-                queen_side_castle = False
-            enemy_can_take = self.playerPrimPos(self.board,enemy_player,False)
-            #remove 1, maybe 2 squares from checking
-            if[row,col_r] in enemy_can_take:
-                enemy_can_take.remove([row,col_r])
-            if col_r == 0 and [row,col_r+1] in enemy_can_take:
-                enemy_can_take.remove([row,col_r+1])
-                
-            #check that all 3 squares are not threatened
-            if queen_side_castle:
-                for i in range(col_k-2,col_k+1):
-                    if [row,i] in enemy_can_take:
-                        return False
-            else:
-                for i in range(col_k,col_k+3):
-                    if [row,i] in enemy_can_take:
-                        return False
-            
-            #check that the spaces between are empty
-            for i in range(small+1,big):
-                if type(self.board[row][i]) != str:
-                    return False
-            if queen_side_castle:
-                return [0,-2]
-            else:
-                return [0,2]
-        else:
-            return False
-        
-           
-class queen(chessPiece):
-    def __init__(self, name, x=0, y=0, color="white",board=[]):
-        super().__init__(name, x, y, color,board)
-        self.type = "queen"
-        self.collision = True
-    def moveOptions(self,not_full_options=False):
-        self.move_options = []
-        dir0 = []
-        dir1 = []
-        dir2 = []
-        dir3 = []
-        dir4 = []
-        dir5 = []
-        dir6 = []
-        dir7 = []
-        for i in range(1,8):
-            dir0.append([i,i])
-            dir1.append([-i,i])
-            dir2.append([i,-i])
-            dir3.append([-i,-i])
-            dir4.append([i,0])
-            dir5.append([-i,0])
-            dir6.append([0,i])
-            dir7.append([0,-i])
-        self.move_options.append(dir0)
-        self.move_options.append(dir1)
-        self.move_options.append(dir2)
-        self.move_options.append(dir3) 
-        self.move_options.append(dir4)
-        self.move_options.append(dir5)
-        self.move_options.append(dir6)
-        self.move_options.append(dir7) 
-        return self.move_options
-      
