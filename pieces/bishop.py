@@ -8,8 +8,8 @@ Created on Mon Feb 26 09:47:33 2024
 from .ChessPiece import ChessPiece
 
 class bishop(ChessPiece):
-    def __init__(self, name, x=0, y=0, color="white",board=[]):
-        super().__init__(name, x, y, color,board)
+    def __init__(self, name, x=0, y=0, color="white",board=[],utils=None):
+        super().__init__(name, x, y, color,board,utils)
         self.type = "bishop"
         self.collision = True
     def moveOptions(self,full_options=False,board=None):

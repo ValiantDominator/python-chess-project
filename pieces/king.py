@@ -8,8 +8,8 @@ Created on Mon Feb 26 09:47:58 2024
 from .ChessPiece import ChessPiece
 
 class king(ChessPiece):
-    def __init__(self, name, x=0, y=0, color="white",board=[]):
-        super().__init__(name, x, y, color,board)
+    def __init__(self, name, x=0, y=0, color="white",board=[],utils=None):
+        super().__init__(name, x, y, color,board,utils)
         self.type = "king"
         self.collision = False
     def moveOptions(self,full_options=False,board=None):
@@ -33,14 +33,22 @@ class king(ChessPiece):
             dir9.append(self.check_castle(rook1))
             if type(dir8[0]) == list:
                 self.move_options.append(dir8)
+            #     print("rook0","can castle")
+            # else:
+            #     print("rook0",dir8)
             if type(dir9[0]) == list:
                 self.move_options.append(dir9)
+            #     print("rook1","can castle")
+            # else:
+            #     print("rook1",dir9)
         return self.move_options
     
     def check_castle(self,rook):
-        if rook == " ":
-            return False
-        if rook.has_not_moved_yet:
+        if rook == None:
+            return "rook is none"
+        elif isinstance(rook,str):
+            return "rook does not exist"
+        else:
             if self.color == "white":
                 enemy_player = "black"
             else:
@@ -65,18 +73,17 @@ class king(ChessPiece):
             if queen_side_castle:
                 for i in range(col_k-2,col_k+1):
                     if [row,i] in enemy_can_take:
-                        return False
+                        return "spaces threatened"
             else:
                 for i in range(col_k,col_k+3):
                     if [row,i] in enemy_can_take:
-                        return False
+                        return "spaces threatened"
             
             #check that the spaces between are empty
             for i in range(small+1,big):
                 if type(self.board[row][i]) != str:
-                    return False
+                    return "spaces clogged"
             if queen_side_castle:
                 return [0,-2]
             return [0,2]
-        else:
-            return False
+        return "idk even know"

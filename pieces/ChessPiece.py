@@ -4,9 +4,10 @@ Created on Mon Feb 26 09:43:23 2024
 
 @author: neeb-meister
 """
+import logging
 
 class ChessPiece:
-    def __init__(self,name,x,y,color,chessboard):
+    def __init__(self,name,x,y,color,chessboard,utils):
         self.name = name
         self.is_chess_piece = True
         self.color = color
@@ -45,7 +46,7 @@ class ChessPiece:
                 if type(space) != str:
                     if space.name == piece:
                         return space
-        print("Couldn't find piece:  " + piece + "  on board")
+        print("Couldn't find piece:  '" + piece + "'  on board")
         print("Calling piece:",self.name)
     
     # initialize : top 
@@ -237,8 +238,17 @@ class ChessPiece:
         for move in list(moves):
             temporary_board = [list(rows) for rows in self.board]
             self.move(move[0],move[1],temporary_board,is_king,False)
-            last_move = self.chessboard.log["last move"]
-            loc = self.chessboard.not2int(last_move[2])
+            if "last move" in self.chessboard.log:
+                last_move = self.chessboard.log["last move"]
+                loc = self.chessboard.utils.not2int(last_move[2])
+            else:
+                loc = None
+                var1 = None
+                var2 = None
+                var3 = None
+                var4 = None
+                last_move = None
+
             var1 = self.type == "pawn"
             var2 = type(self.board[move[0]][move[1]]) == str and self.x_pos!=move[1]
             var3 = [move[0]-self.fwd,move[1]] == loc and self.chessboard.en_passant_fuel
