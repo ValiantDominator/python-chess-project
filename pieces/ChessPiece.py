@@ -46,8 +46,8 @@ class ChessPiece:
                 if type(space) != str:
                     if space.name == piece:
                         return space
-        print("Couldn't find piece:  '" + piece + "'  on board")
-        print("Calling piece:",self.name)
+        # print("Couldn't find piece:  '" + piece + "'  on board")
+        # print("Calling piece:",self.name)
     
     # initialize : top 
     # input top color to set what direction forward is
@@ -109,9 +109,11 @@ class ChessPiece:
             
         # check for en passant
         # remove the corresponding pawn
+        en_passant = False
         if self.type == "pawn" and type(new_space) == str and old_column!=column:
             new_space = mat[row-self.fwd][column]
             mat[row-self.fwd][column] = " "
+            en_passant = True
         
         # check for castle
         # move the corresponding rook
@@ -146,7 +148,7 @@ class ChessPiece:
         mat[row][column] = self
         
         #return the square we landed on, might be useful
-        return new_space
+        return new_space, en_passant
     
     # actualizeOptions : list_of_relative_options -> list_of_real_options
     # take a list of relative options and returns a list of actual options

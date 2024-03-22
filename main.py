@@ -29,11 +29,16 @@ class ChessMain:
     
     def uiInput(self,input_from_ui):
         # pass input straight to board
-        if input_from_ui.lower() == 'xd':
+        msg = input_from_ui.lower()
+        if msg == 'xd':
             self.ui.chess_board.destroy_temp_graphics()
-        elif input_from_ui.lower() == 'reset selection':
+        elif msg == 'reset selection':
             self.ui.chess_board.render_pieces()
-        else:
+        elif msg == 'full log':
+            print(self.board.log)
+        elif msg == 'log':
+            print(self.board.log['last move'])
+        else: 
             self.chessBoardOutput(input_from_ui)
     
     def uiOutput(self,output_to_ui):

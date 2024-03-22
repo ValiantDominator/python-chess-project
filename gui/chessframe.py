@@ -63,23 +63,26 @@ class ChessBoardGUI(tk.Frame):
             for col in range (self.board_number_of_rows):
                 self.squares[row][col].config(width=square_size, height=square_size)
                 self.squares[row][col].resize_square()
+        
+        self.render_pieces()
                 
     def square_clicked(self, row, col):
         if self.game_over:
-            return None
-        space = self.maingui.chessmain.board.mat[row][col]
-        if isinstance(space,str):
-            name = 'empty'
-        else:
-            name = space.name
-        print(f"Square clicked: {row}, {col}  :  {name}")
+            return
+        # space = self.maingui.chessmain.board.mat[row][col]
+        # if isinstance(space,str):
+        #     name = 'empty'
+        # else:
+        #     name = space.name
+        # print(f"Square clicked: {row}, {col}  :  {name}")
         pos = (row, col)
         
         if self.ready_to_move:
-            cmd = self.translate_positions_to_notation(self.selected_square,pos)
-            self.maingui.chessmain.uiInput(cmd)
+            if [row,col] in self.valid_moves_for_selected_piece():
+                cmd = self.translate_positions_to_notation(self.selected_square,pos)
+                self.reset_selection()
+                self.maingui.chessmain.uiInput(cmd)
             self.reset_selection()
-        
         if self.try_select(pos):
             self.render_pieces()
             self.add_move_decoration()
@@ -117,6 +120,14 @@ class ChessBoardGUI(tk.Frame):
                 
                 square.clean_square()
                 square.write_to_square(text)
+                # write rank/file on board
+                if row == 7:
+                    label = chr(ord('a')+col)
+                    square.label_square(label)
+                if col == 0:
+                    label = 8 - row
+                    square.label_square(label)
+                    
         
     def is_active_players_piece(self,pos):
         active_player = self.maingui.chessmain.board.active_player
@@ -181,6 +192,7 @@ class ChessBoardGUI(tk.Frame):
 
     def stop_game(self,winning_player):
         self.game_over = True
+        self.reset_selection()
         self.create_game_over_graphic(winning_player)
         
     def start_game(self):
@@ -217,7 +229,6 @@ class ChessBoardGUI(tk.Frame):
         label.place(relx=0.5,rely=0.4,anchor=tk.CENTER,relwidth=0.8,relheight=0.8)
         self.temp_graphic = label
         self.temp_graphic2 = label2
-        self.render_pieces()
         
 class BoardSquare(tk.Canvas):
     def __init__(self, master=None, **kwargs):
@@ -246,6 +257,42 @@ class BoardSquare(tk.Canvas):
     def write_to_square(self,text):
         self.textID = self.create_center_text(text)
         self.textID = self.center_text()
+        
+    # label_square
+    def label_square(self,text):
+        # see where we are writing to
+        if isinstance(text,int):
+            rank = True
+            text = str(text)
+        else:
+            rank = False
+        
+        # Get the dimensions of the canvas
+        canvas_width = self.winfo_width()
+        canvas_height = self.winfo_height()
+        
+        # Calculate the maximum font size based on canvas dimensions and character size
+        max_font_size = min(canvas_width, canvas_height) // (len(self.text) + 1)
+        max_font_size = int(max_font_size*0.2)
+        
+        # Calculate the coordinates
+        calc_x = canvas_width / 8
+        calc_y = canvas_height / 8
+        
+        if rank:
+            pos = calc_x, calc_y
+        else:
+            pos = 7*calc_x, 7*calc_y
+        
+        labelID = self.create_text(1, 1, text=text, font=("Arial", 1))
+        
+        x, y = pos
+        
+        self.coords(labelID, x, y)
+        
+        self.itemconfig(labelID, font=('Arial',max_font_size))
+        
+        return labelID
         
     # resize_square
     def resize_square(self):

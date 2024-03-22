@@ -12,6 +12,10 @@ from utils import ChessUtils
 from chesslogging import ChessLog
 from ui import ChessTextUI
 import logging
+import sys
+import copy
+
+log_display = False
 
 class ChessBoard:
     def __init__(self,board=[]):
@@ -36,10 +40,15 @@ class ChessBoard:
         self.chesslog = ChessLog(self)
         self.ui = ChessTextUI(self)
         self.utils = ChessUtils()
-        
+        self.board_states = []
         self.log = {}
         self.templog = ''
-        
+    
+    # weigh_self :
+    # returns size of self
+    def weigh_self(self):
+        print("Size of object:", sys.getsizeof(self.mat), "bytes")
+    
     # setUI : UI module
     # sets ui to given module
     def setChessMain(self,module):
@@ -69,10 +78,29 @@ class ChessBoard:
     
     # checkmate : player -> bool
     # gets every move that a player has, and returns True if he has no moves
-    def checkmate(self,player):
-        moves = self.playerValidMoves(player)
+    def checkmate(self,player,reverse=False):
+        if (player == "white") ^ reverse:
+            player_to_check = "white"
+        else:
+            player_to_check = "black"
+        moves = self.playerValidMoves(player_to_check)
         return len(moves) == 0
     
+    # in_check : player -> bool
+    # returns true if a player is in check rn
+    def in_check(self,player,reverse=False):
+        if (player == "white") ^ reverse:
+            player_to_check = "white"
+            enemy = "black"
+        else:
+            player_to_check = "black"
+            enemy = "white"
+        moves = self.playerValidMoves(enemy)
+        packed_king = [piece for piece in self.list_of_pieces if piece.name == player_to_check+' king']
+        king = packed_king[0]
+        if king.pos() in moves:
+            return True
+        return False
         
     # placePieces : color 
     # places pieces on the board
@@ -160,15 +188,15 @@ class ChessBoard:
         active_piece = self.mat[row][column]
         if type(active_piece) == str:
             active_piece = ""
-            print("Empty space. Select a piece")
+            # print("Empty space. Select a piece")
         else:
             if active_piece.color != self.active_player:
-                print("you do not control",active_piece.name)
-                print()
+                # print("you do not control",active_piece.name)
+                # print()
                 active_piece = ""
-            else:
-                print("you selected:",active_piece.name)
-                print()
+            # else:
+                # print("you selected:",active_piece.name)
+                # print()
         # print('selected:',active_piece)
         self.active_piece = active_piece
         return active_piece
@@ -184,18 +212,27 @@ class ChessBoard:
                     upgrade = input("upgrade to: ")
                     if upgrade.lower() == "queen":
                         self.mat[pc.y_pos][pc.x_pos] = p.queen(pc.name,pc.x_pos,pc.y_pos,pc.color,self)
-                        break
+                        self.mat[pc.y_pos][pc.x_pos].my_king = pc.my_king
+                        self.mat[pc.y_pos][pc.x_pos].fwd = pc.fwd
+                        return self.mat[pc.y_pos][pc.x_pos]
                     elif upgrade.lower() == "rook":
                         self.mat[pc.y_pos][pc.x_pos] = p.rook(pc.name,pc.x_pos,pc.y_pos,pc.color,self)
-                        break
+                        self.mat[pc.y_pos][pc.x_pos].my_king = pc.my_king
+                        self.mat[pc.y_pos][pc.x_pos].fwd = pc.fwd
+                        return self.mat[pc.y_pos][pc.x_pos]
                     elif upgrade.lower() == "bishop":
                         self.mat[pc.y_pos][pc.x_pos] = p.bishop(pc.name,pc.x_pos,pc.y_pos,pc.color,self)
-                        break
+                        self.mat[pc.y_pos][pc.x_pos].my_king = pc.my_king
+                        self.mat[pc.y_pos][pc.x_pos].fwd = pc.fwd
+                        return self.mat[pc.y_pos][pc.x_pos]
                     elif upgrade.lower() == "knight":
                         self.mat[pc.y_pos][pc.x_pos] = p.knight(pc.name,pc.x_pos,pc.y_pos,pc.color,self)
-                        break
+                        self.mat[pc.y_pos][pc.x_pos].my_king = pc.my_king
+                        self.mat[pc.y_pos][pc.x_pos].fwd = pc.fwd
+                        return self.mat[pc.y_pos][pc.x_pos]
                     else:
                         print("invalid input:",upgrade)
+        return None
     
     # move : active_piece, pos :
     # checks if a move is valid, then executes it
@@ -229,28 +266,66 @@ class ChessBoard:
     # moveExecute : active_piece, row, column
     # executes a move. 
     def moveExecute(self,active_piece,row,column):
-        log2 = active_piece.pos()
+        # before the move executes, check the board state to see if a prefix
+        # needs to be generated
+        self.chesslog._ambiguous_move_prefix(active_piece, [row,column])
+        
+        # Execute the Move
+        taken, en_passant = active_piece.move(row,column,self.mat)
+        
+        # outstream and processing taken for log
         outstream = {}
-        taken = active_piece.move(row,column,self.mat)
         if isinstance(taken,str):
             outstream['move']=[active_piece.name,"moved to",[row,column]]
+            piece_taken = False
         else:
             outstream['move']=[active_piece.name,"moved to",[row,column],"and took",taken.name]
-        # log entry : player, piece, move
-        logentry = [self.active_player, self.utils.int2not(log2),self.utils.int2not([row,column])]
+            piece_taken = True
+        
+        # notate if a piece was taken
+        
+        # try to promote piece
+        promotion = self.tryPromote(active_piece)
+        if promotion:
+            promote = (promotion.color,promotion.type)
+        else:
+            promote = None
+        
+        # see if it puts enemy in check
+        check = self.in_check(self.active_player,True)
+        
+        # see if it is checkmate
+        checkmate = self.checkmate(self.active_player,True)
+        
+        # prepare extra arguments
+        args = {'promotion':promote,'check':check,'checkmate':checkmate,'en_passant':en_passant,'take':piece_taken}
+        
+        # log entry : player, piece, move, extra_arg
+        log2 = active_piece.pos()
+        logentry = [self.active_player, self.utils.int2not(log2),self.utils.int2not([row,column]),args]
+        
+        # send piece pointer to chess log as well, this helps with algebraic notation
+        self.chesslog.current_piece_pointer = active_piece
+        
+        # send log entry to chess log
         self.chesslog.write(logentry)
-        # legacy castling code
-        # if self.templog != None:
-        #     logentry = [self.active_player, self.templog, 'z26']
-        #     self.templog = None
+
+        # add to local log for use in en-passant logic
         self.log[self.tn] = logentry
         self.log["last move"] = logentry
-        self.tryPromote(active_piece)
+        
+        # switch the active player, increment turn number
         self.switchActivePlayer()
         self.tn += 1
-        print('move executed')
         
-        if self.checkmate(self.active_player):
+        # cook the algebraic notation
+        self.chesslog.log_to_algebraic_notation()
+        
+        # print to log
+        # print('move executed')
+        
+        # if checkmate, return True for game over
+        if checkmate:
             self.ui.show()
             self.switchActivePlayer()
             print("CHECKMATE!",self.active_player,"WINS")
@@ -316,7 +391,7 @@ class ChessBoard:
     # helper function for play(), given input it handles what to do
     def handleInput(self,cmd):
         # write the log file
-        print("cmd:",cmd)
+        # print("cmd:",cmd)
         if cmd == "0 0" and self.active_player == "white":
             cmd = "e1 g1"
         elif cmd == "0 0" and self.active_player == "black":
@@ -338,7 +413,7 @@ class ChessBoard:
         # print -> prints board
         if cmd.lower() == "print":
             self.ui.show()
-            print(self.active_player,"to move")
+            # print(self.active_player,"to move")
             return False
         
         # select -> selects a piece
@@ -352,7 +427,7 @@ class ChessBoard:
             
         # selected -> returns name of selected piece
         elif cmd.lower() == "selected":
-            print(self.active_piece.name)
+            # print(self.active_piece.name)
             return False
         
         # moves -> returns valid moves of selected piece
@@ -360,7 +435,7 @@ class ChessBoard:
             tmpmoves = self.active_piece.validMoves()
             for a,i in enumerate(tmpmoves):
                 tmpmoves[a] = self.utils.int2not(i)
-            print(tmpmoves)
+            # print(tmpmoves)
             return False
             
         # if fast, run select and move together
@@ -369,7 +444,7 @@ class ChessBoard:
         
         # player
         elif cmd.lower() == "player":
-            print(self.active_player)
+            # print(self.active_player)
             return False
         
         # help -> returns list of commands
@@ -388,8 +463,8 @@ class ChessBoard:
         
         # else return unknown command
         else:
-            print("\nUnknown command: "+'"'+cmd+'"')
-            print('type "help" to get a list of commands')
+            # print("\nUnknown command: "+'"'+cmd+'"')
+            # print('type "help" to get a list of commands')
             return False
             
     # play : color, bool 
