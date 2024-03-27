@@ -4,20 +4,33 @@ Created on Mon Feb 26 09:43:23 2024
 
 @author: neeb-meister
 """
-import logging
+# import logging
 
 class ChessPiece:
-    def __init__(self,name,x,y,color,chessboard,utils):
+    def __init__(self,name,x,y,color,chessboard):
+        # constants
         self.name = name
-        self.is_chess_piece = True
         self.color = color
+        self.fwd = 1
+        
+        # variables
         self.x_pos = x
         self.y_pos = y
         self.in_play = True
         self.has_not_moved_yet = True
-        self.fwd = 1
+        
+        # pointers
         self.chessboard = chessboard
-        self.board = [row for row in chessboard.mat]
+        
+        # index of locations
+        self.locations = {}
+        self.locations[0] = (self.y_pos,self.x_pos,self.in_play,self.has_not_moved_yet)
+    
+    # revertTo : turn_num
+    # sets the variables to the turn num
+    def revertTo(self,turn_num):
+        variables = self.locations.get(turn_num)
+        self.y_pos,self.x_pos,self.in_play,self.has_not_moved_yet = variables
     
     # changeColor : color
     # obsolete function to change color
@@ -58,7 +71,7 @@ class ChessPiece:
             self.fwd = -1
         else:
             self.fwd = 1
-        self.my_king = self.getPiece(self.color+" king",self.board)
+        self.my_king = self.getPiece(self.color+" king",self.chessboard.mat)
         
             
     # get_rel_space : [int, int] -> space (piece or str)
@@ -66,7 +79,7 @@ class ChessPiece:
     # translate a relative move to the real move
     def get_rel_space(self,coords,board = None):
         if board == None:
-            board = self.board
+            board = self.chessboard.mat
         row_delta = coords[0]
         column_delta = coords[1]
         row_cur = self.y_pos
@@ -232,13 +245,13 @@ class ChessPiece:
     # each remaining move from primitivePossibilities and sees
     # if that simulated move puts its king in check
     def validMoves(self):
-        moves = self.primitivePossibilities(self.board,True)
+        moves = self.primitivePossibilities(self.chessboard.mat,True)
         is_king = self.type == "king"
         selfinitx = self.x_pos
         selfinity = self.y_pos
         selfmovestorage = self.has_not_moved_yet
         for move in list(moves):
-            temporary_board = [list(rows) for rows in self.board]
+            temporary_board = [list(rows) for rows in self.chessboard.mat]
             self.move(move[0],move[1],temporary_board,is_king,False)
             if "last move" in self.chessboard.log:
                 last_move = self.chessboard.log["last move"]
@@ -252,7 +265,7 @@ class ChessPiece:
                 last_move = None
 
             var1 = self.type == "pawn"
-            var2 = type(self.board[move[0]][move[1]]) == str and self.x_pos!=move[1]
+            var2 = type(self.chessboard.mat[move[0]][move[1]]) == str and self.x_pos!=move[1]
             var3 = [move[0]-self.fwd,move[1]] == loc and self.chessboard.en_passant_fuel
             var4 = not var3
             

@@ -75,10 +75,18 @@ class MainGUI:
         
     
     def submit_message(self,event):
+        # get the message
         message = self.entry.get()
+        
+        # pass it to the board
         self.chessmain.uiInput(message)
+        
+        # add it to the console log
+        self.add_text_to_console_log(message)
+        
+    def add_text_to_console_log(self,text):
         self.console_log_text.config(state=tk.NORMAL)
-        self.console_log_text.insert(tk.END, '\n' + message)
+        self.console_log_text.insert(tk.END, '\n' + text)
         self.console_log_text.config(state=tk.DISABLED)
         self.entry.delete(0, tk.END)
         self.console_log_text.see(tk.END)
@@ -88,9 +96,12 @@ class MainGUI:
         self.game_log_text.delete_text()
         self.game_log_text.write_not()
         
-    def UIinput(self,input_from_main):
+    def UIinput(self,input_from_main,cmd=None):
         if input_from_main == 'update':
             self.update_graphics()
+        if cmd == 'print':
+            print('ran"')
+            self.add_text_to_console_log(input_from_main)
         
         
 class Notation(tk.Frame):
@@ -140,3 +151,7 @@ class Notation(tk.Frame):
         self.right_column.configure(state=tk.NORMAL)
         self.right_column.delete(1.0, "end")
         self.right_column.configure(state=tk.DISABLED)
+        
+# class Menus(tk.Menu):
+#     def __init__(self,master,MainGUI):
+        

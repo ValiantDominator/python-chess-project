@@ -160,13 +160,12 @@ class ChessLog:
         # add landing square
         notation += end_pos
         
-        # add + if check
-        if check:
-            notation += '+'
-            
         # add # if checkmate
         if checkmate:
             notation += '#'
+        # add + if check
+        elif check:
+            notation += '+'
             
         # add e.p. if en_passant
         if en_passant:

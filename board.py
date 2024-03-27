@@ -107,7 +107,6 @@ class ChessBoard:
     # does not reset the board, will overwrite what's on there
     def placePieces(self,top="black"):
         self.list_of_pieces = []
-        utils = ChessUtils()
         self.top = top
         # if len(self.mat) != 8:
         #      print("Error: Unable to inialize board /nThere are not 8 columns")
@@ -126,50 +125,50 @@ class ChessBoard:
             #fill out the top of pieces
             #start by looping over the pawn row
             for i, space in enumerate(self.mat[1]):
-                self.mat[1][i] = p.pawn((top+" pawn "+str(i)),i,1,top,self,self.utils)
+                self.mat[1][i] = p.pawn((top+" pawn "+str(i)),i,1,top,self)
             #get the rooks
-            self.mat[0][0] = p.rook((top+" rook "+str(0)),0,0,top,self,self.utils)
-            self.mat[0][7] = p.rook((top+" rook "+str(1)),7,0,top,self,utils)
+            self.mat[0][0] = p.rook((top+" rook "+str(0)),0,0,top,self)
+            self.mat[0][7] = p.rook((top+" rook "+str(1)),7,0,top,self)
             #get the knights
-            self.mat[0][1] = p.knight((top+" knight "+str(0)),1,0,top,self,utils)
-            self.mat[0][6] = p.knight((top+" knight "+str(1)),6,0,top,self,utils)
+            self.mat[0][1] = p.knight((top+" knight "+str(0)),1,0,top,self)
+            self.mat[0][6] = p.knight((top+" knight "+str(1)),6,0,top,self)
             #get the bishops
-            self.mat[0][2] = p.bishop((top+" bishop "+str(0)),2,0,top,self,utils)
-            self.mat[0][5] = p.bishop((top+" bishop "+str(1)),5,0,top,self,utils)
+            self.mat[0][2] = p.bishop((top+" bishop "+str(0)),2,0,top,self)
+            self.mat[0][5] = p.bishop((top+" bishop "+str(1)),5,0,top,self)
             #fill the king and queen correctly
             #if color matches the space, put the queen there and the king on the other
             if self.mat[0][3] == (top+"_space"):
                 #place queen on its color
-                self.mat[0][3] = p.queen((top+" queen"),3,0,top,self,utils)
-                self.mat[0][4] = p.king((top+" king"),4,0,top,self,utils)
+                self.mat[0][3] = p.queen((top+" queen"),3,0,top,self)
+                self.mat[0][4] = p.king((top+" king"),4,0,top,self)
             else: #other case where king goes first
                 #place queen on its color
-                self.mat[0][4] = p.queen((top+" queen"),4,0,top,self,utils)
-                self.mat[0][3] = p.king((top+" king"),3,0,top,self,utils)
+                self.mat[0][4] = p.queen((top+" queen"),4,0,top,self)
+                self.mat[0][3] = p.king((top+" king"),3,0,top,self)
             
             #fill out the bottom of pieces
             #start by looping over the pawn row
             for i, space in enumerate(self.mat[6]):
-                self.mat[6][i] = p.pawn((bot+" pawn "+str(i)),i,6,bot,self,utils)
+                self.mat[6][i] = p.pawn((bot+" pawn "+str(i)),i,6,bot,self)
             #get the rooks
-            self.mat[7][0] = p.rook((bot+" rook "+str(0)),0,7,bot,self,utils)
-            self.mat[7][7] = p.rook((bot+" rook "+str(1)),7,7,bot,self,utils)
+            self.mat[7][0] = p.rook((bot+" rook "+str(0)),0,7,bot,self)
+            self.mat[7][7] = p.rook((bot+" rook "+str(1)),7,7,bot,self)
             #get the knights
-            self.mat[7][1] = p.knight((bot+" knight "+str(0)),1,7,bot,self,utils)
-            self.mat[7][6] = p.knight((bot+" knight "+str(1)),6,7,bot,self,utils)
+            self.mat[7][1] = p.knight((bot+" knight "+str(0)),1,7,bot,self)
+            self.mat[7][6] = p.knight((bot+" knight "+str(1)),6,7,bot,self)
             #get the bishops
-            self.mat[7][2] = p.bishop((bot+" bishop "+str(0)),2,7,bot,self,utils)
-            self.mat[7][5] = p.bishop((bot+" bishop "+str(1)),5,7,bot,self,utils)
+            self.mat[7][2] = p.bishop((bot+" bishop "+str(0)),2,7,bot,self)
+            self.mat[7][5] = p.bishop((bot+" bishop "+str(1)),5,7,bot,self)
             #fill the king and queen correctly
             #if color matches the space, put the queen there and the king on the other
             if self.mat[7][3] == (bot+"_space"):
                 #place queen on its color
-                self.mat[7][3] = p.queen((bot+" queen"),3,7,bot,self,utils)
-                self.mat[7][4] = p.king((bot+" king"),4,7,bot,self,utils)
+                self.mat[7][3] = p.queen((bot+" queen"),3,7,bot,self)
+                self.mat[7][4] = p.king((bot+" king"),4,7,bot,self)
             else: #other case where king goes first
                 #place queen on its color
-                self.mat[7][4] = p.queen((bot+" queen"),4,7,bot,self,utils)
-                self.mat[7][3] = p.king((bot+" king"),3,7,bot,self,utils)
+                self.mat[7][4] = p.queen((bot+" queen"),4,7,bot,self)
+                self.mat[7][3] = p.king((bot+" king"),3,7,bot,self)
             # loop over every piece and have it find forward
             for row in self.mat:
                 for space in row:
@@ -377,15 +376,16 @@ class ChessBoard:
     # gameHelp : 
     # helper fucntion for handleInput, prints the help blurb
     def gameHelp(self):
-        print("print    : prints board")
-        print("select   : prompts to select a piece")
-        print("move     : prompts to move the selected piece")
-        print("selected : returns name of selected piece")
-        print("moves    : returns valid moves of selected piece")
-        print("help     : shows this menu")
-        print("quit     : exits the game")
-        print("")
-        return None
+        help_string = ''
+        help_string += ("print    : prints board\n")
+        help_string += ("select   : prompts to select a piece\n")
+        help_string += ("move     : prompts to move the selected piece\n")
+        help_string += ("selected : returns name of selected piece\n")
+        help_string += ("moves    : returns valid moves of selected piece\n")
+        help_string += ("help     : shows this menu\n")
+        help_string += ("quit     : exits the game\n")
+        help_string += ("")
+        return ['print', help_string]
     
     # handleInput : str 
     # helper function for play(), given input it handles what to do
@@ -449,8 +449,7 @@ class ChessBoard:
         
         # help -> returns list of commands
         elif cmd.lower() == "help":
-            self.gameHelp()
-            return False
+            return self.gameHelp()
         
         # quit -> breaks the loop
         elif cmd.lower() == "quit":
@@ -484,15 +483,17 @@ class ChessBoard:
     # chessBoardInput : input_from_main
     def chessBoardInput(self,input_from_main):
         game_over = self.handleInput(input_from_main)
-        if game_over:
+        if game_over == True:
             self.chesslog.save()
             self.chessmain.ui.stop_game(self.active_player)
             self.chessmain.ui.chess_board.render_pieces()
+        elif game_over == False or game_over == None:
+            pass
         else:
             # do stuff
-            pass
+            self.chessBoardOutput(game_over)
         # call output function
         self.chessBoardOutput()
         
-    def chessBoardOutput(self,output_to_main=None):
+    def chessBoardOutput(self,output_to_main=[None,None]):
         self.chessmain.chessBoardInput(output_to_main)

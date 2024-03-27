@@ -41,12 +41,16 @@ class ChessMain:
         else: 
             self.chessBoardOutput(input_from_ui)
     
-    def uiOutput(self,output_to_ui):
-        self.ui.UIinput(output_to_ui)
+    def uiOutput(self,output_to_ui,cmd=None):
+        self.ui.UIinput(output_to_ui,cmd)
     
     def chessBoardInput(self,input_from_chessboard):
         # do nothing
-        self.uiOutput('update')
+        if input_from_chessboard[0] == "print":
+            self.uiOutput(input_from_chessboard[1],'print')
+            
+        else:
+            self.uiOutput('update')
     
     def chessBoardOutput(self,output_to_chessboard):
         # pass straight to board

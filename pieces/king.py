@@ -8,13 +8,13 @@ Created on Mon Feb 26 09:47:58 2024
 from .ChessPiece import ChessPiece
 
 class king(ChessPiece):
-    def __init__(self, name, x=0, y=0, color="white",board=[],utils=None):
-        super().__init__(name, x, y, color,board,utils)
+    def __init__(self, name, x=0, y=0, color="white",board=[]):
+        super().__init__(name, x, y, color,board)
         self.type = "king"
         self.collision = False
     def moveOptions(self,full_options=False,board=None):
         if board == None:
-            board = self.board
+            board = self.chessboard.mat
         self.move_options = []
         self.move_options.append([[1,1]])
         self.move_options.append([[0,1]])
@@ -25,8 +25,8 @@ class king(ChessPiece):
         self.move_options.append([[-1,0]])
         self.move_options.append([[0,-1]])
         if self.has_not_moved_yet and full_options:
-            rook0 = self.getPiece(self.color+" rook 0", self.board)
-            rook1 = self.getPiece(self.color+" rook 1", self.board)
+            rook0 = self.getPiece(self.color+" rook 0", self.chessboard.mat)
+            rook1 = self.getPiece(self.color+" rook 1", self.chessboard.mat)
             dir8 = []
             dir9 = []
             dir8.append(self.check_castle(rook0))
@@ -62,7 +62,7 @@ class king(ChessPiece):
                 queen_side_castle = True
             else:
                 queen_side_castle = False
-            enemy_can_take = self.playerPrimPos(self.board,enemy_player,False)
+            enemy_can_take = self.playerPrimPos(self.chessboard.mat,enemy_player,False)
             #remove 1, maybe 2 squares from checking
             if[row,col_r] in enemy_can_take:
                 enemy_can_take.remove([row,col_r])
@@ -81,7 +81,7 @@ class king(ChessPiece):
             
             #check that the spaces between are empty
             for i in range(small+1,big):
-                if type(self.board[row][i]) != str:
+                if type(self.chessboard.mat[row][i]) != str:
                     return "spaces clogged"
             if queen_side_castle:
                 return [0,-2]
